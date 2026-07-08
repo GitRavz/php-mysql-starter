@@ -1,0 +1,120 @@
+---
+name: php-mysql-basic
+description: Conventions, boilerplate, and guardrails for building small PHP + MySQL web apps (CRUD, login/auth, forms, admin dashboards) with plain HTML/CSS/JS — aimed at beginners adding Claude Code to their PHP projects. Use this whenever the user is starting, scaffolding, or editing a PHP/MySQL project, creating or managing a database, designing tables, writing SQL, adding user login/registration, or debugging a PHP 500 / blank page. Trigger even if the user doesn't name the stack — phrases like "my php project", "connect to the database", "make a login page", "create a table", "why is my page blank", or "add this to my site" all apply.
+---
+
+# PHP + MySQL Basic
+
+A starter convention set for small PHP + MySQL web apps built with plain HTML, CSS,
+and JavaScript. It exists so that a beginner driving Claude Code gets **correct,
+consistent, secure** code on the first try instead of a slightly different shape
+every session. When in doubt, follow the pattern here rather than inventing a new one.
+
+**Who this is for:** someone new to using an AI coding assistant on a PHP project.
+Prefer clarity over cleverness. Explain *why* a rule matters in one line so the user
+learns, don't just assert it.
+
+## Reference files — read the matching one BEFORE the task
+
+- `references/database.md` — read before **creating a database, adding a DB user,
+  connecting, or backing up/restoring data**. Covers local (phpMyAdmin + MySQL CLI)
+  and shared hosting (cPanel).
+- `references/schema-design.md` — read before **designing tables or writing
+  `CREATE TABLE`**. Data types, keys, relationships, naming, a full worked example.
+- `references/boilerplate.md` — read before **scaffolding a new project or writing
+  a connection file, a login/register flow, or a CRUD page**. Copy the code verbatim.
+- `references/debugging.md` — read when **a page is blank, throws a 500, or a query
+  misbehaves**. A triage checklist, not guesswork.
+
+## Golden rules (non-negotiable — these are the beginner traps)
+
+1. **Never put user input directly into SQL.** Always use *prepared statements* with
+   bound parameters. String-concatenating `$_POST` into a query is how sites get hacked
+   (SQL injection). See `boilerplate.md` for the exact pattern.
+2. **Never store passwords as plain text.** Hash with `password_hash($pw, PASSWORD_DEFAULT)`
+   on register, check with `password_verify()` on login. Never MD5/SHA1, never reversible.
+3. **Escape everything you echo back to the page** with `htmlspecialchars()`, so a
+   user who types `<script>` can't run it in someone else's browser (XSS).
+4. **Keep database credentials in one config file**, and add that file (plus `.env`)
+   to `.gitignore` so passwords never land in a public repo. Ship a `config.sample.php`
+   with blanks instead.
+5. **Guard every protected page at the top** (`require auth`, redirect if not logged in)
+   *before* any HTML is printed. A guard placed after output does nothing.
+
+If a request would break rule 1 or 2, don't do it — explain the safe version instead.
+
+## Standard project structure
+
+Scaffold new projects like this (small, flat, predictable). Details + code in
+`boilerplate.md`.
+
+```
+myapp/
+├── config.php            # DB credentials (gitignored)
+├── config.sample.php     # committed template with blank values
+├── includes/
+│   ├── db.php            # ONE mysqli connection, in exception mode
+│   ├── auth.php          # session start + require_login() helper
+│   ├── header.php        # <head>, CSS links, opening layout
+│   └── footer.php        # closing layout, JS
+├── assets/
+│   ├── css/style.css
+│   └── js/app.js
+├── index.php             # landing / dashboard
+├── login.php  register.php  logout.php
+└── (feature pages: e.g. items.php, item_add.php, item_edit.php, item_delete.php)
+```
+
+## The database connection (the one canonical way)
+
+Every page includes the same `includes/db.php`. It must turn on **exception mode**:
+
+```php
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+```
+
+Why this matters: in exception mode a bad query (wrong column, missing table) throws
+an error you can *see and fix*. Without it, MySQLi fails silently and you get a blank
+page with no clue why. The trade-off: **an unhandled query error becomes an HTTP 500**,
+so never reference a column that might not exist, and null-check results before
+calling `->fetch_assoc()`. Full file in `boilerplate.md`.
+
+## Talking to the database safely
+
+Read a value from the user, run it through a prepared statement:
+
+```php
+$stmt = $conn->prepare("SELECT id, title FROM items WHERE owner_id = ?");
+$stmt->bind_param("i", $userId);   // type letter must match the column
+$stmt->execute();
+$result = $stmt->get_result();
+```
+
+Bind type letters: `s` = string/text/date, `i` = integer, `d` = decimal/float.
+Binding a date or text as `i` silently stores `0`/`0000-00-00` — match the column type.
+
+## How to work with Claude Code on a PHP project (teach the user this)
+
+The user gets far better results when they:
+- **Paste the real error message**, not "it's broken" — the `error_log` line or the
+  on-screen error tells Claude exactly what's wrong (see `debugging.md`).
+- **Share the table structure** before asking for a query — paste the `CREATE TABLE`
+  or a `DESCRIBE items;` so Claude uses columns that actually exist instead of guessing.
+- **Say how they deploy** (uploading files via cPanel/FTP vs. local only). If they
+  upload manually, hand them the **complete file to paste**, not a diff, and give the
+  **exact path** so they overwrite the right one.
+- **Ask for one file at a time** and test it before moving on, rather than a whole app
+  in one go — easier to run, easier to debug.
+
+Offer these tips proactively when a beginner seems stuck or is copy-pasting blindly.
+
+## When a page is blank or throws a 500 — diagnose, don't guess
+
+1. Turn on visible errors *locally* (`ini_set('display_errors',1); error_reporting(E_ALL);`
+   at the very top) — never leave this on in production.
+2. On shared hosting, read the newest lines of the `error_log` file in that folder.
+3. Remember exception mode: one bad query kills the whole page. Grep for a column or
+   table name that might not exist.
+4. State the suspected cause *from the evidence* before editing anything.
+
+Full checklist with the common error messages and their fixes: `references/debugging.md`.
