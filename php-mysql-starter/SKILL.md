@@ -1,9 +1,9 @@
 ---
-name: php-mysql-basic
-description: Conventions, boilerplate, and guardrails for building small PHP + MySQL web apps (CRUD, login/auth, forms, admin dashboards) with plain HTML/CSS/JS — aimed at beginners adding Claude Code to their PHP projects. Use this whenever the user is starting, scaffolding, or editing a PHP/MySQL project, creating or managing a database, designing tables, writing SQL, adding user login/registration, or debugging a PHP 500 / blank page. Trigger even if the user doesn't name the stack — phrases like "my php project", "connect to the database", "make a login page", "create a table", "why is my page blank", or "add this to my site" all apply.
+name: php-mysql-starter
+description: Conventions, boilerplate, and guardrails for building small PHP + MySQL web apps and multi-role systems (CRUD, login/auth, roles, status workflows, dashboards, modals) with plain HTML/CSS/JS — aimed at beginners adding Claude Code to their PHP projects. Use this whenever the user is starting, scaffolding, or editing a PHP/MySQL project, creating or managing a database, designing tables, writing SQL, adding user login/registration, building a role-based or order/status monitoring system, adding modals or dashboards, or debugging a PHP 500 / blank page. Trigger even if the user doesn't name the stack — phrases like "my php project", "connect to the database", "make a login page", "create a table", "add user roles", "track order status", "why is my page blank", or "add this to my site" all apply.
 ---
 
-# PHP + MySQL Basic
+# PHP + MySQL Starter
 
 A starter convention set for small PHP + MySQL web apps built with plain HTML, CSS,
 and JavaScript. It exists so that a beginner driving Claude Code gets **correct,
@@ -25,6 +25,13 @@ learns, don't just assert it.
   a connection file, a login/register flow, or a CRUD page**. Copy the code verbatim.
 - `references/debugging.md` — read when **a page is blank, throws a 500, or a query
   misbehaves**. A triage checklist, not guesswork.
+- `references/roles-and-workflow.md` — read before **adding user roles, permission
+  checks, or a status/approval workflow** (e.g. an order moving sales → production →
+  releasing, like an OMS). Covers the `role` column, `require_role()`, status columns,
+  and safe status transitions.
+- `references/ui-patterns.md` — read before **building a dashboard, a data table with
+  search/filter/pagination, a modal, a status badge, or a "success" message after an
+  action**. The reusable UI shapes you'd otherwise rebuild on every page.
 
 ## Golden rules (non-negotiable — these are the beginner traps)
 
@@ -39,7 +46,13 @@ learns, don't just assert it.
    to `.gitignore` so passwords never land in a public repo. Ship a `config.sample.php`
    with blanks instead.
 5. **Guard every protected page at the top** (`require auth`, redirect if not logged in)
-   *before* any HTML is printed. A guard placed after output does nothing.
+   *before* any HTML is printed. A guard placed after output does nothing. When the app
+   has roles, also check the role here (`require_role('admin')`) — see
+   `references/roles-and-workflow.md`.
+6. **Protect every state-changing action with a CSRF token.** Any form or AJAX call that
+   inserts/updates/deletes must send a hidden token that the server checks before acting,
+   so another site can't trick a logged-in user into firing it. This matters the moment
+   more than one person uses the system. Pattern in `references/ui-patterns.md`.
 
 If a request would break rule 1 or 2, don't do it — explain the safe version instead.
 
@@ -92,6 +105,28 @@ $result = $stmt->get_result();
 
 Bind type letters: `s` = string/text/date, `i` = integer, `d` = decimal/float.
 Binding a date or text as `i` silently stores `0`/`0000-00-00` — match the column type.
+
+## Building a system with roles and a workflow (the OMS shape)
+
+Many real projects aren't "one user editing their own rows" — they're **several roles
+acting on shared records that move through stages**: an order created by *sales*, checked
+by a *manager*, worked by *production*, handed over by *releasing*. Order/monitoring
+systems, help desks, and approval trackers all share this shape. Full patterns live in
+`references/roles-and-workflow.md`; the essentials:
+
+- **One `role` column on `users`** (e.g. `ENUM` or a small `roles` table). Decide
+  permissions from the role, never from a hidden form field the user could change.
+- **A `status` column on the record** with a fixed set of values (`'pending'`,
+  `'in_production'`, `'released'`). The status *is* the workflow.
+- **Guard by role at the top of the page** with `require_role(...)`, and **guard the
+  transition too** — check on the server that this role is allowed to move this record
+  *from its current status to the next one* before you `UPDATE`. A button being hidden in
+  the UI is not security; the server check is.
+- **Log who changed what, when.** A tiny `activity_log` (or `created_by` / `updated_by`
+  columns) turns "who moved this order?" from a mystery into a query.
+
+Do NOT gate features by hiding buttons alone, and do NOT trust a `role` or `status` value
+that arrived in `$_POST` — re-read the user's real role from the session/DB every time.
 
 ## How to work with Claude Code on a PHP project (teach the user this)
 
