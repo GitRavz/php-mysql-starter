@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/php.svg" alt="PHP logo" width="90" height="90" />
+<img src="https://raw.githubusercontent.com/GitRavz/php-mysql-starter/main/assets/php.svg" alt="PHP logo" width="90" height="90" />
 
 # php-mysql-starter
 
