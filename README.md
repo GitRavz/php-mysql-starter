@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/GitRavz/php-mysql-starter/main/assets/php.svg" alt="PHP logo" width="90" height="90" />
-
-# php-mysql-starter
+# 🐘 php-mysql-starter
 
 **A beginner-friendly [Claude Code Skill](https://code.claude.com/docs/en/skills) for building small, secure PHP + MySQL web apps.**
 
