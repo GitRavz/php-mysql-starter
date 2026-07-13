@@ -2,7 +2,7 @@
 
 # 🐘 php-mysql-starter
 
-**A beginner-friendly [Claude Code Skill](https://code.claude.com/docs/en/skills) for building small, secure PHP + MySQL web apps.**
+**A beginner-friendly AI coding-assistant Skill — for [Claude Code](https://code.claude.com/docs/en/skills) and other `SKILL.md`-compatible LLMs — for building small, secure PHP + MySQL web apps.**
 
 *From your first CRUD page all the way to a multi-role system with a status workflow — one consistent, secure pattern instead of slightly different code every session.*
 
@@ -29,7 +29,7 @@
 
 ## ✨ What it covers
 
-An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches Claude Code the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript.
+An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches Claude Code — or any `SKILL.md`-compatible AI assistant / LLM — the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript.
 
 It's for people **just starting to use Claude Code (or any `SKILL.md`-compatible AI agent) on a PHP project** — students, hobbyists, and devs shipping their first small app or system to shared hosting.
 
@@ -40,7 +40,7 @@ It's for people **just starting to use Claude Code (or any `SKILL.md`-compatible
 - 👥 **Roles & workflow** — a `role` column, `require_role()` guards, status columns, and safe status transitions for systems where several people move shared records through stages (an OMS-style app).
 - 🎨 **UI patterns** — a reusable filterable/paginated data table, status badges, dashboard summary cards, flash messages (Post-Redirect-Get), and a no-framework modal.
 - 🩺 **Debugging** — a triage checklist for blank pages / HTTP 500s and the most common PHP + MySQL error messages with their fixes.
-- 🤝 **How to work with Claude Code effectively** on a PHP project (what to paste, how to ask), so beginners get good results.
+- 🤝 **How to work with your AI assistant effectively** (Claude Code or any LLM) on a PHP project (what to paste, how to ask), so beginners get good results.
 
 ---
 
