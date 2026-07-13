@@ -46,11 +46,7 @@
 
 ## ✨ What it covers
 
-<<<<<<< HEAD
-An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches Claude Code — or any `SKILL.md`-compatible AI assistant / LLM — the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript.
-=======
 An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches your AI coding agent the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript. It ships both a `SKILL.md` and an `AGENTS.md`, so it works in **Claude Code, Codex, Cursor, Gemini CLI, and GitHub Copilot CLI** — see [Install](#-install).
->>>>>>> 9985b2bfcc0ba70fca7c17d253c904900efa41c6
 
 It's for people **just starting to use an AI coding agent on a PHP project** — students, hobbyists, and devs shipping their first small app or system to shared hosting.
 
@@ -61,11 +57,7 @@ It's for people **just starting to use an AI coding agent on a PHP project** —
 - 👥 **Roles & workflow** — a `role` column, `require_role()` guards, status columns, safe status transitions, **sub-stages within a status (stage chips)**, and a **sign-off / approval timeline** — the shape of an OMS-style app.
 - 🎨 **UI patterns** — a reusable filterable/paginated data table, status badges, dashboard summary cards, flash messages (Post-Redirect-Get), a no-framework modal, and a **live-updating list** (polling + the event-delegation gotcha that bites everyone).
 - 🩺 **Debugging** — a triage checklist for blank pages / HTTP 500s and the most common PHP + MySQL error messages with their fixes.
-<<<<<<< HEAD
-- 🤝 **How to work with your AI assistant effectively** (Claude Code or any LLM) on a PHP project (what to paste, how to ask), so beginners get good results.
-=======
 - 🤝 **How to work with your AI agent effectively** on a PHP project (what to paste, how to ask), so beginners get good results.
->>>>>>> 9985b2bfcc0ba70fca7c17d253c904900efa41c6
 
 ---
 
