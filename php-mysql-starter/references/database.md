@@ -14,6 +14,7 @@
 6. Character set — always use utf8mb4
 7. Connect from PHP
 8. Everyday management tasks
+8b. Evolving a table that already has live data (auto-migrate, renaming safely)
 9. Backups & restore (the part beginners forget)
 10. Common mistakes
 
@@ -125,6 +126,51 @@ TRUNCATE TABLE items;   -- deletes ALL rows but keeps the table structure
 ```
 
 ⚠️ `DROP` and `TRUNCATE` are irreversible. Back up first (next section).
+
+## 8b. Evolving a table that already has live data
+
+Once an app is live on shared hosting, changing a table is riskier than on your local
+machine — there's real data in it and you often can't run a proper migration tool. Two
+patterns keep changes from breaking the running site.
+
+### Auto-migrate: let the page add its own missing column
+
+Remember the exception-mode rule: a query that references a column which doesn't exist
+yet is a **500**, not an empty result. So when you ship code that needs a new column, the
+old database won't have it and every visitor hits a blank page until you `ALTER` by hand.
+
+Instead, have the page create the column if it's missing, then carry on:
+
+```php
+// Run once at the top, before any query that uses `priority`.
+$chk = $conn->query("SHOW COLUMNS FROM `orders` LIKE 'priority'");
+if ($chk && $chk->num_rows === 0) {
+    $conn->query("ALTER TABLE `orders` ADD COLUMN `priority` VARCHAR(20) NULL");
+}
+```
+
+Why this helps a beginner deploying via cPanel: you upload the file and it "just works"
+on the old database — no separate "remember to run this SQL" step to forget. It's cheap
+(`SHOW COLUMNS` is instant) and safe to leave in; after the column exists it does nothing.
+
+> Keep these blocks together near the top and remove them once every environment has the
+> column, so the file doesn't grow a pile of them. For anything destructive (dropping or
+> retyping a column with data in it) do NOT auto-run it — back up and do it deliberately.
+
+### Renaming a column without breaking old code
+
+If you rename a column, every `$row['old_name']` and every `WHERE old_name = ?` still
+expects the old name and will now 500. Rather than hunt down every reference at once,
+**alias the new column back to the old name in your SELECTs**:
+
+```sql
+SELECT id, customer_name AS customer, order_number AS reference
+FROM orders
+```
+
+Now existing PHP that reads `$row['customer']` / `$row['reference']` keeps working while
+you migrate call sites gradually. The alias only affects the *result* names — the real
+column is the new one. (Writes still use the real name: `UPDATE orders SET customer_name = ?`.)
 
 ## 9. Backups & restore (the part beginners forget)
 

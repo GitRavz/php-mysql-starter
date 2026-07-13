@@ -29,18 +29,18 @@
 
 ## ✨ What it covers
 
-An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches Claude Code the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript.
+An [Agent Skill](https://code.claude.com/docs/en/skills) that teaches your AI coding agent the **conventions, boilerplate, and safety rules** for building small **PHP + MySQL** web apps — using plain HTML, CSS, and JavaScript. It ships both a `SKILL.md` and an `AGENTS.md`, so it works in **Claude Code, Codex, Cursor, Gemini CLI, and GitHub Copilot CLI** — see [Install](#-install).
 
-It's for people **just starting to use Claude Code (or any `SKILL.md`-compatible AI agent) on a PHP project** — students, hobbyists, and devs shipping their first small app or system to shared hosting.
+It's for people **just starting to use an AI coding agent on a PHP project** — students, hobbyists, and devs shipping their first small app or system to shared hosting.
 
 - 🔒 **Golden safety rules** built in by default — prepared statements (no SQL injection), hashed passwords, escaped output (no XSS), CSRF tokens on every state-changing action, credentials kept out of git.
-- 🗄️ **Database creation & management** — create a database and user locally (phpMyAdmin / MySQL CLI) and on shared hosting (cPanel), grant privileges, and back up / restore with `mysqldump`.
-- 📐 **Schema design** — choosing data types, primary/foreign keys, naming, and a full worked example schema.
+- 🗄️ **Database creation & management** — create a database and user locally (phpMyAdmin / MySQL CLI) and on shared hosting (cPanel), grant privileges, back up / restore with `mysqldump`, and **change a table that already has live data safely** (auto-migrate a missing column, rename one without breaking old code).
+- 📐 **Schema design** — choosing data types, primary/foreign keys, naming, a full worked example, and **when a JSON column is OK** (and how to read one whose shape has changed).
 - 📋 **Copy-paste boilerplate** — connection file, login/register with `password_hash`, and a complete CRUD (Create-Read-Update-Delete) page set.
-- 👥 **Roles & workflow** — a `role` column, `require_role()` guards, status columns, and safe status transitions for systems where several people move shared records through stages (an OMS-style app).
-- 🎨 **UI patterns** — a reusable filterable/paginated data table, status badges, dashboard summary cards, flash messages (Post-Redirect-Get), and a no-framework modal.
+- 👥 **Roles & workflow** — a `role` column, `require_role()` guards, status columns, safe status transitions, **sub-stages within a status (stage chips)**, and a **sign-off / approval timeline** — the shape of an OMS-style app.
+- 🎨 **UI patterns** — a reusable filterable/paginated data table, status badges, dashboard summary cards, flash messages (Post-Redirect-Get), a no-framework modal, and a **live-updating list** (polling + the event-delegation gotcha that bites everyone).
 - 🩺 **Debugging** — a triage checklist for blank pages / HTTP 500s and the most common PHP + MySQL error messages with their fixes.
-- 🤝 **How to work with Claude Code effectively** on a PHP project (what to paste, how to ask), so beginners get good results.
+- 🤝 **How to work with your AI agent effectively** on a PHP project (what to paste, how to ask), so beginners get good results.
 
 ---
 
@@ -48,42 +48,79 @@ It's for people **just starting to use Claude Code (or any `SKILL.md`-compatible
 
 ```
 php-mysql-starter/
-├── SKILL.md                        # the skill entry point (Claude reads this first)
+├── SKILL.md                        # skill entry point — skill-aware agents read this first
+├── AGENTS.md                       # same guidance for agents that read AGENTS.md/rules (Cursor, Codex, …)
 └── references/
-    ├── database.md                 # DB creation & management (local + cPanel), backups
-    ├── schema-design.md            # designing tables, keys, a worked schema
+    ├── database.md                 # DB creation & management (local + cPanel), backups, safe live migrations
+    ├── schema-design.md            # designing tables, keys, a worked schema, JSON columns
     ├── boilerplate.md              # db.php, auth, login/register, full CRUD
-    ├── roles-and-workflow.md       # roles, require_role(), status transitions (OMS shape)
-    ├── ui-patterns.md              # tables, filters, pagination, badges, flash, CSRF, modals
+    ├── roles-and-workflow.md       # roles, require_role(), transitions, stage chips, sign-off timeline
+    ├── ui-patterns.md              # tables, filters, pagination, badges, flash, CSRF, modals, live polling
     └── debugging.md                # blank page / 500 triage + common errors
 ```
+
+`SKILL.md` and `AGENTS.md` carry the **same** rules — you don't pick one, they just let
+different agents discover the skill their own way.
 
 ---
 
 ## 🚀 Install
 
-### Claude Code (recommended)
-
-Skills live in one of two folders. Put the **`php-mysql-starter` folder** (the one with `SKILL.md` directly inside it) into either:
-
-- `~/.claude/skills/` — **personal**, available in all your projects, or
-- `.claude/skills/` — **project-scoped**, committed with a specific repo so teammates get it too.
-
-Quick way (personal install):
+The skill is just Markdown, so it works in any AI coding agent. Everywhere below, the
+thing you install is the inner **`php-mysql-starter` folder** — the one with `SKILL.md`
+and `AGENTS.md` directly inside it.
 
 ```bash
 git clone https://github.com/GitRavz/php-mysql-starter.git
-mkdir -p ~/.claude/skills
-cp -r php-mysql-starter/php-mysql-starter ~/.claude/skills/
+# the folder to install is: php-mysql-starter/php-mysql-starter
 ```
 
-Then start a new Claude Code session and run `/skills` to confirm it loaded.
+### Claude Code
 
-> ⚠️ The final path must be `~/.claude/skills/php-mysql-starter/SKILL.md` — **not** nested a level deeper.
+Copy the folder into either location, then start a new session and run `/skills` to confirm:
+
+- `~/.claude/skills/` — **personal**, available in all your projects, or
+- `.claude/skills/` — **project-scoped**, committed with a repo so teammates get it too.
+
+```bash
+mkdir -p ~/.claude/skills
+cp -r php-mysql-starter/php-mysql-starter ~/.claude/skills/php-mysql-starter
+```
+
+> ⚠️ Final path must be `~/.claude/skills/php-mysql-starter/SKILL.md` — not nested deeper.
+
+### Codex, Copilot CLI, Gemini CLI (cross-runtime skills folder)
+
+These agents discover skills from a shared `~/.agents/skills/` directory:
+
+```bash
+mkdir -p ~/.agents/skills
+cp -r php-mysql-starter/php-mysql-starter ~/.agents/skills/php-mysql-starter
+```
+
+They read `SKILL.md` automatically. If your version doesn't support skills yet, use the
+**Cursor / any agent** method below instead — the `AGENTS.md` covers the same ground.
+
+### Cursor / Windsurf / any agent (via AGENTS.md or rules)
+
+Agents without a skills folder read project context instead:
+
+- **Simplest:** copy this project's `AGENTS.md` to your project root (Cursor, Codex,
+  and others read a root `AGENTS.md` as standing instructions), and keep the
+  `references/` folder next to it so the links resolve.
+- **Cursor rules:** or point a rule at it — create `.cursor/rules/php-mysql-starter.mdc`
+  whose body is “Follow the conventions in `AGENTS.md` and `references/*.md`,” and drop
+  this folder into the project.
 
 ### Claude.ai (Pro / Max / Team / Enterprise, with code execution)
 
-Zip the `php-mysql-starter` folder and upload it under **Settings → Capabilities/Features → Skills**. (Custom skills are per-user.)
+Zip the inner `php-mysql-starter` folder and upload it under
+**Settings → Capabilities/Features → Skills**. (Custom skills are per-user.)
+
+### Manual (last resort, any chat LLM)
+
+Paste the contents of `SKILL.md` (or `AGENTS.md`) into your chat, then paste the specific
+`references/*.md` file for the task at hand when the agent needs the detail.
 
 ---
 
