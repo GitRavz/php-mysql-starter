@@ -18,12 +18,29 @@
 
 ## 📖 Table of Contents
 
+- [🆕 Latest update](#-latest-update)
 - [✨ What it covers](#-what-it-covers)
 - [🗂️ Repo structure](#️-repo-structure)
 - [🚀 Install](#-install)
 - [💬 How to use it](#-how-to-use-it)
 - [🎯 A note on scope](#-a-note-on-scope)
 - [📄 License](#-license)
+
+---
+
+## 🆕 Latest update
+
+> **This is the latest version of the skill I built.** Updated **July 2026** with the
+> patterns I've been using in real projects, plus support for more AI agents:
+>
+> - 🤖 **Now works beyond Claude Code** — ships an `AGENTS.md` alongside `SKILL.md`, so
+>   **Codex, Cursor, Gemini CLI, and GitHub Copilot CLI** can use it too.
+> - 🗄️ **Safe live-schema changes** — auto-migrate a missing column, rename one without
+>   breaking old code.
+> - 🔄 **Live-updating lists** — polling + the event-delegation gotcha that breaks clicks
+>   after a refresh.
+> - 👥 **Richer workflows** — sub-stages as stage chips, and a sign-off / approval timeline.
+> - 🧩 **JSON columns** — when they're OK, and how to read one whose shape has changed.
 
 ---
 
