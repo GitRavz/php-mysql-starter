@@ -1,6 +1,6 @@
 ---
 name: php-mysql-starter
-description: Conventions, boilerplate, and guardrails for building small PHP + MySQL web apps and multi-role systems (CRUD, login/auth, roles, status workflows, dashboards, modals) with plain HTML/CSS/JS — aimed at beginners adding Claude Code to their PHP projects. Use this whenever the user is starting, scaffolding, or editing a PHP/MySQL project, creating or managing a database, designing tables, writing SQL, adding user login/registration, building a role-based or order/status monitoring system, adding modals or dashboards, or debugging a PHP 500 / blank page. Trigger even if the user doesn't name the stack — phrases like "my php project", "connect to the database", "make a login page", "create a table", "add user roles", "track order status", "why is my page blank", or "add this to my site" all apply.
+description: Use when building or editing a small PHP + MySQL web app with plain HTML/CSS/JS — scaffolding a project, creating or evolving a database, designing tables or writing SQL, adding login/registration or user roles, building a status/approval workflow or order-monitoring system, adding dashboards, tables, modals, or live-updating lists, or debugging a PHP 500 / blank page. Aimed at beginners driving an AI agent on a PHP project; triggers even when the stack isn't named — "my php project", "connect to the database", "make a login page", "create a table", "add user roles", "track order status", "why is my page blank", "add this to my site".
 ---
 
 # PHP + MySQL Starter
@@ -17,8 +17,9 @@ learns, don't just assert it.
 ## Reference files — read the matching one BEFORE the task
 
 - `references/database.md` — read before **creating a database, adding a DB user,
-  connecting, or backing up/restoring data**. Covers local (phpMyAdmin + MySQL CLI)
-  and shared hosting (cPanel).
+  connecting, backing up/restoring data, or changing a table that already has live
+  data** (adding a column safely, renaming one without breaking old code). Covers local
+  (phpMyAdmin + MySQL CLI) and shared hosting (cPanel).
 - `references/schema-design.md` — read before **designing tables or writing
   `CREATE TABLE`**. Data types, keys, relationships, naming, a full worked example.
 - `references/boilerplate.md` — read before **scaffolding a new project or writing
@@ -28,10 +29,12 @@ learns, don't just assert it.
 - `references/roles-and-workflow.md` — read before **adding user roles, permission
   checks, or a status/approval workflow** (e.g. an order moving sales → production →
   releasing, like an OMS). Covers the `role` column, `require_role()`, status columns,
-  and safe status transitions.
+  safe status transitions, **sub-stages within a status (stage chips)**, and a
+  **sign-off / approval timeline**.
 - `references/ui-patterns.md` — read before **building a dashboard, a data table with
-  search/filter/pagination, a modal, a status badge, or a "success" message after an
-  action**. The reusable UI shapes you'd otherwise rebuild on every page.
+  search/filter/pagination, a modal, a status badge, a "success" message after an
+  action, or a list that refreshes itself without a full page reload (live polling)**.
+  The reusable UI shapes you'd otherwise rebuild on every page.
 
 ## Golden rules (non-negotiable — these are the beginner traps)
 
@@ -105,6 +108,24 @@ $result = $stmt->get_result();
 
 Bind type letters: `s` = string/text/date, `i` = integer, `d` = decimal/float.
 Binding a date or text as `i` silently stores `0`/`0000-00-00` — match the column type.
+
+## Changing a table that already has live data
+
+On shared hosting you can't always run a migration tool, and a query that names a column
+which doesn't exist yet is a **500** (exception mode, above). Two safe habits — full
+detail in `references/database.md`:
+
+- **Add missing columns defensively** at the top of the page that needs them, so the app
+  heals itself instead of white-screening on an old database:
+  ```php
+  $chk = $conn->query("SHOW COLUMNS FROM `orders` LIKE 'priority'");
+  if ($chk && $chk->num_rows === 0) {
+      $conn->query("ALTER TABLE `orders` ADD COLUMN `priority` VARCHAR(20) NULL");
+  }
+  ```
+- **When you rename a column, alias it back** so existing code keeps working:
+  `SELECT customer_name AS customer FROM orders`. Old `$row['customer']` still resolves;
+  a raw reference to the removed name would 500.
 
 ## Building a system with roles and a workflow (the OMS shape)
 

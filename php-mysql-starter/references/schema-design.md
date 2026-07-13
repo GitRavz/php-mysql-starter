@@ -13,6 +13,7 @@
 6. Worked example — a small "task manager" schema
 7. Relationships explained (one-to-many, many-to-many)
 8. Gotchas
+9. When a JSON column is OK (and surviving a format change)
 
 ---
 
@@ -133,3 +134,48 @@ CREATE TABLE task_tags (
   later is a one-line `ALTER TABLE` (see `database.md`); over-designing wastes time.
 - **Match your PHP `bind_param` type letters to these columns** — `INT` → `i`,
   `VARCHAR`/`TEXT`/`DATE` → `s`, `DECIMAL` → `d`.
+
+## 9. When a JSON column is OK (and surviving a format change)
+
+Gotcha #1 says don't stuff a list into a column — and for anything you filter, join, or
+count on, that's right: use a proper table. But there's a narrow, legitimate exception:
+a **blob of detail you only ever read back as a whole, attached to one record**. For
+example, the line-items of one order (`[{name, quantity}, …]`) that you always show
+together and never query across. Storing that as one JSON column beside the order is
+simpler than a child table you'd never actually query on its own.
+
+```sql
+ALTER TABLE orders ADD COLUMN items_json JSON NULL;   -- or TEXT on older MySQL
+```
+
+```php
+// write
+$stmt = $conn->prepare("UPDATE orders SET items_json = ? WHERE id = ?");
+$json = json_encode(['products' => $products]);        // $products = [['name'=>..,'quantity'=>..], ..]
+$stmt->bind_param("si", $json, $id);
+
+// read
+$data = json_decode($order['items_json'] ?? '{}', true) ?: [];
+```
+
+**Rule:** if you ever want to say `WHERE item = 'x'` or `SUM(quantity)`, it should be a
+table, not JSON. JSON is only for "read the whole thing back and display it".
+
+### Surviving a format change (handle both shapes)
+
+The moment JSON is worth it, its shape *will* change — you rename a key or restructure it,
+and old rows still hold the old shape. Reading assuming only the new shape crashes on old
+data. So **accept both** when you read:
+
+```php
+$data  = json_decode($order['items_json'] ?? '{}', true) ?: [];
+// new shape: {"products":[...]}   legacy shape: {"multi_items":[...]}
+$items = $data['products'] ?? $data['multi_items'] ?? [];
+foreach ($items as $it) {
+    echo e($it['name']) . ' × ' . (int)($it['quantity'] ?? 0) . '<br>';
+}
+```
+
+This is the JSON version of the "alias a renamed column" trick in `database.md`: don't
+force-migrate every old row at once — read tolerantly, write in the new shape, and old
+records keep rendering.

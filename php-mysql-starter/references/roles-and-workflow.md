@@ -11,6 +11,8 @@
 3. Guarding a page by role (`require_role`)
 4. The status column — the workflow itself
 5. Guarding the *transition*, not just the page
+5b. Sub-stages within a status (stage chips)
+5c. A sign-off / approval timeline (who approved what, when)
 6. Who-can-do-what: a permission table you can read at a glance
 7. Logging who did what (activity trail)
 8. Worked example — a mini order workflow
@@ -160,6 +162,88 @@ Two subtleties worth teaching:
   the first wins — the second updates 0 rows and gets told to refresh. Cheap safety.
 - The current status comes **from the database**, not from a hidden `<input>`. A hidden
   field can be edited in the browser; the DB is the source of truth.
+
+## 5b. Sub-stages within a status (stage chips)
+
+Sometimes one status has its own little pipeline inside it. An order sitting at
+`in_production` might really be moving through *cutting → sewing → pressing → packing*
+before it's done. Two clean ways to model that:
+
+- **A second column** on the record for the fine stage, e.g.
+  `production_stage VARCHAR(30)`, driven by its own small forward-only map — exactly like
+  `WORKFLOW` in section 4, just for the inner steps:
+  ```php
+  const PRODUCTION_STAGES = [
+      'cutting' => ['sewing'], 'sewing' => ['pressing'],
+      'pressing' => ['packing'], 'packing' => [],   // packing done → advance the main status
+  ];
+  ```
+- When the **last** sub-stage completes, advance the *main* `status` (via
+  `change_status()` from section 5) — the sub-stage column resets for the next status.
+
+Not every sub-stage needs an approval. Some are just "mark it done and move on" (an
+operator uploads a file and it advances itself); others need a manager to sign off first
+(section 5c). Decide per stage — don't force an approval step where none is needed.
+
+Show the stages as a row of **chips** so anyone can see where a record is at a glance:
+
+```php
+function stage_chips(string $current, array $stages): string {
+    $out = '<div class="chips">';
+    $passed = true;
+    foreach ($stages as $s) {
+        $state = $s === $current ? 'now' : ($passed ? 'done' : 'todo');
+        if ($s === $current) $passed = false;          // everything after "now" is todo
+        $out .= '<span class="chip chip-' . $state . '">'
+              . e(ucfirst($s)) . '</span>';
+    }
+    return $out . '</div>';
+}
+// echo stage_chips($order['production_stage'], ['cutting','sewing','pressing','packing']);
+```
+
+```css
+.chips { display:flex; gap:.35rem; flex-wrap:wrap; }
+.chip  { padding:.15rem .6rem; border-radius:999px; font-size:.75rem; font-weight:600; }
+.chip-done { background:#d4edda; color:#155724; }        /* already passed  */
+.chip-now  { background:#cce5ff; color:#004085; }        /* current stage   */
+.chip-todo { background:#eee;    color:#777;    }        /* not reached yet */
+```
+
+## 5c. A sign-off / approval timeline (who approved what, when)
+
+When stages need approval, record each sign-off as its own row rather than overwriting a
+single "approved_by" field — that way you keep the whole history and can render a timeline.
+This is the same `activity_log` idea (section 7) aimed at approvals:
+
+```sql
+CREATE TABLE order_signoffs (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id   INT UNSIGNED NOT NULL,
+    stage      VARCHAR(40)  NOT NULL,       -- e.g. 'layout', 'sample'
+    approved_by INT UNSIGNED NOT NULL,      -- FK -> users.id
+    approved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Render the expected stages, marking which are signed off and which are still waiting:
+
+```php
+// $done = ['layout' => ['name'=>'Ana','at'=>'2026-07-10 09:12'], ...]  built from a query
+foreach (['layout','sample','final'] as $stage) {
+    if (isset($done[$stage])) {
+        echo '<li class="ok">✓ ' . ucfirst($stage) . ' — '
+           . e($done[$stage]['name']) . ' · ' . e($done[$stage]['at']) . '</li>';
+    } else {
+        echo '<li class="pending">◻ ' . ucfirst($stage) . ' — awaiting sign-off</li>';
+    }
+}
+```
+
+Two habits that keep this honest: only show a stage as signed off when there's a real row
+for it (don't assume), and record `approved_by` from the **session**, never from a form
+field — otherwise the timeline lies about who approved.
 
 ## 6. Who-can-do-what: a permission table you can read at a glance
 

@@ -13,6 +13,7 @@
 5. Status badges
 6. Dashboard summary cards (counts by status)
 7. A reusable modal (no framework)
+8. Live-updating a list without a full page reload (polling + event delegation)
 
 ---
 
@@ -318,3 +319,73 @@ document.addEventListener('keydown', (ev) => {
 The modal still submits a **normal POST form with a CSRF token** — so even though it looks
 fancy, the security is identical to a plain form. The JS only shows/hides; the server
 still does every real check.
+
+## 8. Live-updating a list without a full page reload (polling + event delegation)
+
+In a monitoring system several people watch the same list while others move records
+through it. Instead of everyone pressing F5, the page can quietly re-fetch just the rows
+every few seconds and swap them in. You do **not** need a framework or WebSockets — the
+same PHP list page can return *only its rows* when asked.
+
+### Step 1 — let the list page return just the `<tr>`s
+
+Add a tiny switch near the top of the list page (the one from section 4). When the URL has
+`?rows=1`, print only the table rows and stop — no header, no layout:
+
+```php
+$rowsOnly = isset($_GET['rows']);   // ?rows=1 → return fragment only
+
+// ...run the same query as normal...
+
+if ($rowsOnly) {
+    while ($o = $rows->fetch_assoc()) {
+        echo '<tr data-id="' . (int)$o['id'] . '">';
+        echo   '<td>' . e($o['reference']) . '</td>';
+        echo   '<td>' . e($o['customer']) . '</td>';
+        echo   '<td>' . status_badge($o['status']) . '</td>';
+        echo '</tr>';
+    }
+    exit;                            // <-- important: send nothing else
+}
+// otherwise fall through and render the full page as usual
+```
+
+### Step 2 — poll and swap the tbody
+
+```js
+// assets/js/live_poll.js
+const tbody = document.querySelector('#orders-tbody');
+
+async function refreshRows() {
+  const res  = await fetch(location.pathname + '?rows=1' + location.search.replace('?', '&'));
+  tbody.innerHTML = await res.text();     // replace all rows in one go
+}
+setInterval(refreshRows, 5000);           // every 5s; don't go too aggressive
+```
+
+### The gotcha that bites everyone: bind clicks with **event delegation**
+
+Because `tbody.innerHTML = ...` throws away the old rows and builds new ones, **any click
+handler you attached to a row is now gone** — clicks work once, then die after the first
+refresh. The fix is to attach ONE handler to a parent that never gets replaced (the
+`document` or the table), and let clicks bubble up to it:
+
+```js
+// ✅ survives every refresh — one listener, matches rows that don't exist yet
+document.addEventListener('click', (ev) => {
+  const row = ev.target.closest('tr[data-id]');
+  if (row) openDetails(row.dataset.id);
+});
+
+// ❌ breaks after the first poll — these rows get replaced
+document.querySelectorAll('tr[data-id]').forEach(r =>
+  r.addEventListener('click', () => openDetails(r.dataset.id))
+);
+```
+
+Rule of thumb: **any content you replace via AJAX must have its clicks handled by
+delegation on a stable parent**, never bound to the elements themselves.
+
+> Keep the poll gentle (a few seconds, not 200ms) and make sure `?rows=1` still runs the
+> same `require_login()` / role guards — it's a real endpoint, not a "safe" one just
+> because it returns a fragment.
